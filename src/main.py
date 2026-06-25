@@ -1,6 +1,7 @@
 from azure.core.credentials import AzureKeyCredential
 from azure.ai.documentintelligence import DocumentIntelligenceClient
 from azure.ai.documentintelligence.models import AnalyzeDocumentRequest
+from token_classifier import classify_paragraphs, TableToken
 from dotenv import load_dotenv
 import os
 
@@ -73,9 +74,22 @@ if __name__ == "__main__":
         "maths": "https://www.education.gov.za/Portals/0/CD/2021NovemberExamPapers/Non-Languages%20Nov%202021%20PDF/Mathematics/Mathematics%20P1%20Nov%202021%20Eng.pdf?ver=2022-01-19-064250-000"
     }
     
-    doc_url = test_docs["economics"]
+    doc_url = test_docs["accounting"]
 
-    document = extract_document(doc_url, "3-4")
+    document = extract_document(doc_url, "6-7")
+
+    tokens = classify_paragraphs(
+        document["paragraphs"], 
+        document["figures"],
+        document["tables"]
+    )
 
     if write_to_file("extracted_document.txt", document):
-        print(document)
+        for token in tokens:
+            if isinstance(token, TableToken):
+                print(f"\nTableToken(id={token.table_id}, rows={token.row_count}, cols={token.column_count})")
+                print("  Headers:", [c.content for c in token.headers()])
+                for row in token.rows():
+                    print("  Row:", [c.content for c in row])
+            else:
+                print(token)
